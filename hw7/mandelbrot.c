@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
+#include <time.h>
 
 int main(int argc, char* argv[])
 {
@@ -91,18 +92,19 @@ int main(int argc, char* argv[])
   typedef unsigned char Pixel[6];
   Pixel *pixels = malloc(sizeof(Pixel) *xres*yres); //this will maybe work?? was different on slack.
 
-//NOTE instead of writing to a file write to an array, then iterate through it later on and write that.
-
   /* Precompute pixel width and height. */
   double dx=(xmax-xmin)/xres;
   double dy=(ymax-ymin)/yres;
 
+  clock_t begin = clock();
+  #pragma omp parallel shared(pixels)
+  {
   double x, y; /* Coordinates of the current point in the complex plane. */
   double u, v; /* Coordinates of the iterated point. */
   int i,j; /* Pixel counters */
   int k; /* Iteration counter */
 
-  #pragma omp parallel for private(x,y,u,v,i,j,k)
+  #pragma omp for schedule(dynamic)
   for (j = 0; j < yres; j++) {
     y = ymax - j * dy;
     for(i = 0; i < xres; i++) {
@@ -124,12 +126,12 @@ int main(int argc, char* argv[])
         // const unsigned char black[] = {0, 0, 0, 0, 0, 0};
         // fwrite (black, 6, 1, fp);
 
-        pixels[j*xres + k][0] = 0;
-        pixels[j*xres + k][1] = 0;
-        pixels[j*xres + k][2] = 0;
-        pixels[j*xres + k][3] = 0;
-        pixels[j*xres + k][4] = 0;
-        pixels[j*xres + k][5] = 0;
+        pixels[j*xres + i][0] = 0;
+        pixels[j*xres + i][1] = 0;
+        pixels[j*xres + i][2] = 0;
+        pixels[j*xres + i][3] = 0;
+        pixels[j*xres + i][4] = 0;
+        pixels[j*xres + i][5] = 0;
       }
       else {
         /* exterior */ //NOTE old code
@@ -142,15 +144,19 @@ int main(int argc, char* argv[])
         // color[5] = k & 255;
         // fwrite(color, 6, 1, fp);
 
-        pixels[j*xres + k][0] = k >>8;
-        pixels[j*xres + k][1] = k & 255;
-        pixels[j*xres + k][2] = k >>8;
-        pixels[j*xres + k][3] = k & 255;
-        pixels[j*xres + k][4] = k >>8;
-        pixels[j*xres + k][5] = k & 255;
+        pixels[j*xres + i][0] = k >>8;
+        pixels[j*xres + i][1] = k & 255;
+        pixels[j*xres + i][2] = k >>8;
+        pixels[j*xres + i][3] = k & 255;
+        pixels[j*xres + i][4] = k >>8;
+        pixels[j*xres + i][5] = k & 255;
       };
     }
   }
+}
+  clock_t end = clock();
+  double time_spent = (double)(end-begin) /CLOCKS_PER_SEC;
+  printf("time: %f\n", time_spent);
   //write to file.
   fwrite(pixels, sizeof(Pixel), xres * yres, fp);
   fclose(fp);

@@ -1,5 +1,13 @@
 //Branden Foley, bpfoley, modified mandlebrot.c, parallelize(?) this process with openMP.
 
+
+// Turn in stuff
+//   1. 4 cores (lab machine)
+//   2. times
+
+
+
+
 /*
   This program is an adaptation of the Mandelbrot program
   from the Programming Rosetta Stone, see
@@ -10,7 +18,7 @@
   gcc -o mandelbrot -O4 mandelbrot.c
 
   Usage:
- 
+
   ./mandelbrot <xmin> <xmax> <ymin> <ymax> <maxiter> <xres> <out.ppm>
 
   Example:
@@ -32,6 +40,12 @@
   See http://www.imagemagick.org/Usage/color_mods/ for what ImageMagick
   can do. It can do a lot.
 */
+
+//TODO --- store all the stuff to write to the file, and then only write it after all of the parellizing takes place.
+
+
+// This code consists of one major loop nest that can be parallelized, but it has a problem. Every iteration is writing into the file, and it must be written in order. You will need to save all the entries somehow and then write them all out after the computation. I strongly suggest you get this working before you parallelize the code.
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +87,11 @@ int main(int argc, char* argv[])
           xmin, xmax, ymin, ymax, maxiter, xres, yres, (maxiter < 256 ? 256 : maxiter));
 
 
-//Start stuff here. wrap the loop and that should be about it.
+//Start stuff here store the  pixels in a big array, then write them all in a proper order.
+  typedef unsigned char Pixel[6];
+  Pixel *pixels = malloc(sizeof(Pixel) *xres*yres); //this will maybe work?? was different on slack.
+
+//NOTE instead of writing to a file write to an array, then iterate through it later on and write that.
 
   /* Precompute pixel width and height. */
   double dx=(xmax-xmin)/xres;
@@ -102,23 +120,39 @@ int main(int argc, char* argv[])
       };
       /* compute  pixel color and write it to file */
       if (k >= maxiter) {
-        /* interior */
-        const unsigned char black[] = {0, 0, 0, 0, 0, 0};
-        fwrite (black, 6, 1, fp);
+        /* interior */ //NOTE OLD CODE
+        // const unsigned char black[] = {0, 0, 0, 0, 0, 0};
+        // fwrite (black, 6, 1, fp);
+
+        pixels[j*xres + k][0] = 0;
+        pixels[j*xres + k][1] = 0;
+        pixels[j*xres + k][2] = 0;
+        pixels[j*xres + k][3] = 0;
+        pixels[j*xres + k][4] = 0;
+        pixels[j*xres + k][5] = 0;
       }
       else {
-        /* exterior */
-        unsigned char color[6];
-        color[0] = k >> 8;
-        color[1] = k & 255;
-        color[2] = k >> 8;
-        color[3] = k & 255;
-        color[4] = k >> 8;
-        color[5] = k & 255;
-        fwrite(color, 6, 1, fp);
+        /* exterior */ //NOTE old code
+        // unsigned char color[6];
+        // color[0] = k >> 8;
+        // color[1] = k & 255;
+        // color[2] = k >> 8;
+        // color[3] = k & 255;
+        // color[4] = k >> 8;
+        // color[5] = k & 255;
+        // fwrite(color, 6, 1, fp);
+
+        pixels[j*xres + k][0] = k >>8;
+        pixels[j*xres + k][1] = k & 255;
+        pixels[j*xres + k][2] = k >>8;
+        pixels[j*xres + k][3] = k & 255;
+        pixels[j*xres + k][4] = k >>8;
+        pixels[j*xres + k][5] = k & 255;
       };
     }
   }
+  //write to file.
+  fwrite(pixels, sizeof(Pixel), xres * yres, fp);
   fclose(fp);
   return 0;
 }

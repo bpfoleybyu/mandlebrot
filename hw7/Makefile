@@ -1,2 +1,2 @@
 make:
-	gcc -o mandlebrot -O4 mandlebrot.c 
+	gcc -o mandelbrot -O4 -fopenmp mandelbrot.c
